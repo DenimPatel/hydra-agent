@@ -3,6 +3,15 @@
 A prototype: route each message to a topic-specific, isolated LLM
 conversation ("shard") instead of growing one context and evicting from it.
 
+```
+London weather this week
+Reverse a linked list in Python
+Will it rain in London on Saturday?
+Make it iterative instead
+/status
+```
+![shards](image.png)
+
 Ask about the weather → a "weather" shard is created. Ask an unrelated
 coding question → a new "code" shard is created; the weather shard is
 untouched. Ask about the weather again → routed back to the *original*
