@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hydra-agent"
+version = "0.1.0"
+description = "A topic-router prototype: routes each message to a specialized, isolated LLM shard instead of growing one context and evicting from it."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "openai>=1.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+hydra = "hydra.cli:main"
+
+[tool.setuptools]
+packages = ["hydra"]
