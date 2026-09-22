@@ -10,7 +10,7 @@ THE ONE DELIBERATE ASYMMETRY, worth reading before touching this file:
 every failure mode -- the call raising, an unparseable reply, or a returned
 id that isn't a real shard -- falls back to NEW. Spawning an unneeded shard
 is a cheap, visible, always-recoverable mistake (worst case: two shards for
-one topic, easily noticed in `:status`). Trusting a wrong EXISTING id would
+one topic, easily noticed in `/status`). Trusting a wrong EXISTING id would
 silently splice this message into a different topic's history, corrupting
 that shard in a way nothing surfaces until much later. When in doubt, split,
 never merge.
@@ -60,7 +60,7 @@ class Router(object):
     def classify(self, user_text):
         """Read-only: decides where `user_text` should go, without mutating
         any state. Separated from `route()` so tests/CLI can inspect a
-        decision before committing to it (e.g. for a `:status`-style dry run).
+        decision before committing to it (e.g. for a `/status`-style dry run).
         """
         if not self.shards:
             return RouteDecision(is_new=True, topic_label=_fallback_label(user_text),
@@ -117,7 +117,7 @@ class Router(object):
 
     def spawn(self, topic_label):
         """Public version of the NEW branch: create a fresh shard and advance
-        the global turn counter. The CLI's `:new` path uses this instead of
+        the global turn counter. The CLI's `/new` path uses this instead of
         reaching into `_spawn_shard` and hand-rolling the turn bookkeeping.
         """
         shard = self._spawn_shard(topic_label)

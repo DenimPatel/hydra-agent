@@ -45,21 +45,21 @@ hydra chat [--session NAME] [--router-model MODEL] [--shard-model MODEL] [--data
   which model handles routing decisions vs. actual shard conversations.
 - `--data-dir` (default `.hydra`) — where session state is stored on disk.
 - `--verbose` / `-v` — auto-print every thread's full stats table after
-  every turn, not just when you ask for it with `:status`. Toggle it on or
-  off mid-session with `:verbose` instead of restarting.
+  every turn, not just when you ask for it with `/status`. Toggle it on or
+  off mid-session with `/verbose` instead of restarting.
 
 Inside the chat REPL:
 
 ```
-:status            show every thread's id, topic, turns, and context size
-:verbose           toggle auto-printing full thread stats after every turn
-:switch <id>       force the NEXT message to a specific existing thread
-:new <label>       force the NEXT message to start a brand-new thread
-:help              show this help
-:quit / :q         exit (Ctrl-D also exits)
+/status            show every thread's id, topic, turns, and context size
+/verbose           toggle auto-printing full thread stats after every turn
+/switch <id>       force the NEXT message to a specific existing thread
+/new <label>       force the NEXT message to start a brand-new thread
+/help              show this help
+/quit / /q         exit (Ctrl-D also exits)
 ```
 
-`:status` (and any turn while `--verbose`/`:verbose` is on) shows an
+`/status` (and any turn while `--verbose`/`/verbose` is on) shows an
 *extended* table beyond the compact per-turn line: every thread's turn
 count, last real input- and output-token counts, the global turn it was
 created on, and how many turns it's been since that thread was last used —

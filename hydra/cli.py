@@ -2,7 +2,7 @@
 
 Every turn prints, in color: the router's decision (routed to an existing
 shard, or spawned a new one), the reply, and a compact context-size line for
-the shard that just handled it. `:status` prints a full table of every
+the shard that just handled it. `/status` prints a full table of every
 shard's state. Nothing here decides routing itself -- that's router.py; this
 module only renders decisions and drives the read-persist-print loop.
 """
@@ -22,12 +22,12 @@ _PALETTE = ["cyan", "green", "yellow", "magenta", "blue",
             "bright_cyan", "bright_green", "bright_yellow", "bright_magenta"]
 
 HELP_TEXT = """\
-:status            show every thread's id, topic, turns, and context size
-:verbose           toggle auto-printing full thread stats after every turn
-:switch <id>       force the NEXT message to a specific existing thread
-:new <label>       force the NEXT message to start a brand-new thread
-:help              show this help
-:quit / :q         exit (Ctrl-D also exits)"""
+/status            show every thread's id, topic, turns, and context size
+/verbose           toggle auto-printing full thread stats after every turn
+/switch <id>       force the NEXT message to a specific existing thread
+/new <label>       force the NEXT message to start a brand-new thread
+/help              show this help
+/quit / /q         exit (Ctrl-D also exits)"""
 
 
 def _color_for(shard_id, known_ids):
@@ -41,7 +41,7 @@ def _color_for(shard_id, known_ids):
 
 
 def status_rows(shards, turn, extended=False):
-    """The plain data behind `:status`, separate from its rendering so the
+    """The plain data behind `/status`, separate from its rendering so the
     values can be asserted directly in tests instead of substring-matched
     against a whole printed table. Each row is
     [id, topic, turns, ctx tok, created turn] plus, when extended,
@@ -124,7 +124,7 @@ class Session(object):
 
     def print_status(self, console, extended=False):
         """`extended=True` (used automatically when `self.verbose` is on, or
-        always via `:status` -- see below) adds the columns that don't fit
+        always via `/status` -- see below) adds the columns that don't fit
         in the compact table: each shard's last OUTPUT token count (input is
         already in the base table as "ctx tok"), and how many global turns
         it's been since that shard was last used -- the same "since active"
@@ -163,7 +163,7 @@ def _build_parser():
     chat.add_argument("--data-dir", default=".hydra")
     chat.add_argument("--verbose", "-v", action="store_true",
                        help="auto-print every thread's full stats table after each turn "
-                            "(toggle mid-session with :verbose)")
+                            "(toggle mid-session with /verbose)")
     return parser
 
 
@@ -189,7 +189,7 @@ def main(argv=None):
     console.print("[bold]hydra-agent[/] -- session=%r router=%s shard=%s%s" % (
         args.session, config.router_model, config.shard_model,
         " [bold yellow](verbose)[/]" if session.verbose else ""))
-    console.print("[dim]%d thread(s) loaded from %s. :help for commands, :quit to exit.[/]" % (
+    console.print("[dim]%d thread(s) loaded from %s. /help for commands, /quit to exit.[/]" % (
         len(session.router.shards), session.session_dir))
 
     while True:
@@ -201,31 +201,39 @@ def main(argv=None):
         text = (line or "").strip()
         if not text:
             continue
-        if text in (":quit", ":q", ":exit"):
+        cmd, _, arg = text.partition(" ")
+        arg = arg.strip()
+        if cmd in ("/quit", "/q", "/exit"):
             return 0
-        if text == ":help":
+        if cmd == "/help":
             console.print(HELP_TEXT)
             continue
-        if text == ":status":
+        if cmd == "/status":
             session.print_status(console, extended=True)
             continue
-        if text == ":verbose":
+        if cmd == "/verbose":
             session.verbose = not session.verbose
             console.print("[dim]verbose auto-status is now %s[/]" % (
                 "ON" if session.verbose else "OFF"))
             continue
-        if text.startswith(":switch "):
-            shard_id = text[len(":switch "):].strip()
-            if shard_id not in session.router.shards:
-                console.print("[red]no such thread %r -- see :status[/]" % shard_id)
+        if cmd == "/switch":
+            if not arg:
+                console.print("[red]usage: /switch <id> -- see /status[/]")
+            elif arg not in session.router.shards:
+                console.print("[red]no such thread %r -- see /status[/]" % arg)
             else:
-                session.forced_shard_id = shard_id
-                console.print("[dim]next message forced to %s[/]" % shard_id)
+                session.forced_shard_id = arg
+                console.print("[dim]next message forced to %s[/]" % arg)
             continue
-        if text.startswith(":new "):
-            label = text[len(":new "):].strip()
-            session.forced_new_label = label or "untitled"
-            console.print("[dim]next message will start a new thread %r[/]" % session.forced_new_label)
+        if cmd == "/new":
+            if not arg:
+                console.print("[red]usage: /new <label>[/]")
+            else:
+                session.forced_new_label = arg
+                console.print("[dim]next message will start a new thread %r[/]" % arg)
+            continue
+        if text.startswith("/"):
+            console.print("[red]unknown command %r -- /help for the list[/]" % text)
             continue
         try:
             session.handle_message(console, text)

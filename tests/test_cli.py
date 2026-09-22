@@ -53,7 +53,7 @@ def test_the_verbose_toggle_flips_the_sessions_own_flag(tmp_path):
 
 
 def test_status_command_always_shows_extended_columns_even_when_not_verbose(tmp_path):
-    """:status is an explicit request for detail -- it shouldn't need
+    """/status is an explicit request for detail -- it shouldn't need
     verbose mode to be on to show the full picture.
     """
     client = FakeLLMClient([text("hello")])
@@ -99,3 +99,55 @@ def test_status_rows_compact_form_omits_the_extended_columns(tmp_path):
 
     rows = status_rows(session.router.shards, session.router.turn, extended=False)
     assert rows == [["t1", "hello", "1", "11", "0"]]
+
+
+def _run_repl(monkeypatch, tmp_path, client, lines):
+    import hydra.cli as cli
+
+    monkeypatch.setattr(cli, "DeepSeekClient", lambda *a, **k: client)
+    console = Console(record=True, width=200)
+    monkeypatch.setattr(cli, "Console", lambda *a, **k: console)
+    pending = iter(lines)
+    monkeypatch.setattr(console, "input", lambda prompt="": next(pending))
+    rc = cli.main(["chat", "--data-dir", str(tmp_path)])
+    return rc, console.export_text()
+
+
+def test_slash_commands_are_handled_locally_and_never_sent_to_the_model(tmp_path, monkeypatch):
+    client = FakeLLMClient([])  # any model call would raise
+    rc, out = _run_repl(monkeypatch, tmp_path, client,
+                        ["/help", "/status", "/unknown", "/quit"])
+    assert rc == 0
+    assert client.calls == []
+    assert "unknown command '/unknown'" in out
+
+
+def test_bare_switch_and_new_print_usage_instead_of_unknown_command(tmp_path, monkeypatch):
+    client = FakeLLMClient([])
+    rc, out = _run_repl(monkeypatch, tmp_path, client, ["/switch", "/new", "/quit"])
+    assert rc == 0
+    assert "usage: /switch <id>" in out
+    assert "usage: /new <label>" in out
+    assert "unknown command" not in out
+    assert client.calls == []
+
+
+def test_a_plain_message_still_reaches_the_shard(tmp_path, monkeypatch):
+    client = FakeLLMClient([text("hello back")])
+    rc, _ = _run_repl(monkeypatch, tmp_path, client, ["hi there", "/quit"])
+    assert rc == 0
+    assert len(client.calls) == 1
+    assert client.calls[0]["messages"] == [{"role": "user", "content": "hi there"}]
+
+
+def test_switch_forces_the_next_message_into_the_named_shard(tmp_path, monkeypatch):
+    client = FakeLLMClient([text("first reply"), text("forced reply")])
+    rc, out = _run_repl(monkeypatch, tmp_path, client,
+                        ["create first thread", "/switch t1", "again", "/quit"])
+    assert rc == 0
+    assert "next message forced to t1" in out
+    # the forced turn is appended to t1's own history, alongside its first turn
+    assert [m["content"] for m in client.calls[1]["messages"]] == [
+        "create first thread", "first reply", "again"]
+
+

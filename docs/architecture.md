@@ -78,7 +78,7 @@ you need to memorize up front.
   (incremented once per message, regardless of which shard handled it) and
   is what `Shard.created_turn` records a snapshot of; `Shard.turns` is a
   *per-shard* counter (how many times *this* shard specifically has been
-  used). The `:status` table's "turns" column is the per-shard count; its
+  used). The `/status` table's "turns" column is the per-shard count; its
   "created turn" column is the global counter's value at spawn time.
 - **Session** (on disk) — a named, persisted collection of shards plus the
   global turn counter, identified by `--session NAME` (default `"default"`).
@@ -112,7 +112,7 @@ you need to memorize up front.
   through. See "The one deliberate asymmetry" in the section below for why
   it's always NEW and never a guessed `EXISTING`.
 - **Forced routing** — bypassing `classify()`/`route()` entirely for one
-  message via the CLI's `:switch <id>` or `:new <label>` commands.
+  message via the CLI's `/switch <id>` or `/new <label>` commands.
 
 **Reasoning-model terms (came up debugging a real failure)**
 
@@ -145,14 +145,14 @@ you need to memorize up front.
 
 - **REPL** — Read-Eval-Print Loop; the interactive `hydra chat` session
   that reads one message, acts on it, prints the result, and loops.
-- **`:status`** — prints a table of every shard's stats (see "extended
+- **`/status`** — prints a table of every shard's stats (see "extended
   status" below).
-- **Verbose** — an opt-in mode (`--verbose`/`-v` at startup, or `:verbose`
+- **Verbose** — an opt-in mode (`--verbose`/`-v` at startup, or `/verbose`
   to toggle mid-session) that auto-prints the extended status table after
-  *every* turn, not just when `:status` is typed. `Session.verbose` (a
+  *every* turn, not just when `/status` is typed. `Session.verbose` (a
   plain bool) is the only state this adds.
 - **Extended status** — the richer version of the status table (used by
-  `:status` always, and by any turn while verbose is on): beyond the
+  `/status` always, and by any turn while verbose is on): beyond the
   compact per-turn line, it adds each shard's last real *output*-token
   count (input is already shown as "ctx tok") and its "turns since
   active" — how many global turns have passed since that shard was last
@@ -205,7 +205,7 @@ sequenceDiagram
     loop every user message
         User->>CLI: types a message
 
-        alt :switch ID or :new LABEL was used
+        alt /switch ID or /new LABEL was used
             CLI->>Router: use forced shard_id, or spawn labeled shard directly
             Note right of CLI: bypasses classification entirely
         else normal routing
@@ -268,7 +268,7 @@ For every message, `Router.classify()`:
 **The one deliberate asymmetry, worth internalizing before changing this
 file**: every failure mode falls back to NEW, never to a guessed EXISTING.
 Spawning an unneeded shard is a cheap, visible, always-recoverable mistake —
-worst case, two shards end up covering one topic, which `:status` makes
+worst case, two shards end up covering one topic, which `/status` makes
 obvious. Trusting a wrong `EXISTING` id would silently splice a message into
 a different topic's history, corrupting that shard in a way nothing
 surfaces until much later, if ever. When in doubt, split, never merge.
@@ -355,15 +355,15 @@ shard always renders in the same color for the life of a session.
 
 `print_status(console, extended=False)` renders a `rich.table.Table` of
 every shard. The compact form (`extended=False`) shows id, topic, turn
-count, and last real context-token count. `:status` always asks for the
+count, and last real context-token count. `/status` always asks for the
 extended form; `Session.verbose` (set at startup with `--verbose`/`-v`, or
-flipped mid-session with `:verbose`) makes `handle_message()` print that
+flipped mid-session with `/verbose`) makes `handle_message()` print that
 same extended table automatically after every turn, adding two columns the
 compact form skips: each shard's last real *output*-token count, and how
 many global turns it's been since that shard was last active — computed the
 same way `router._render_menu()` computes it for the model's own routing
 menu, just surfaced to the terminal instead of only ever feeding a prompt.
 
-`:switch <id>` and `:new <label>` bypass the router entirely for one
+`/switch <id>` and `/new <label>` bypass the router entirely for one
 message — useful for testing/debugging a specific shard, or for manually
 correcting a misroute, without needing a code change.
